@@ -1,102 +1,52 @@
 package main
 
-import (
-	"fmt"
-	"slices"
-	"strconv"
-	"strings"
-)
+import "fmt"
 
-func stats(customers []string) string {
-	namesOfCustomers := ""
-	customersFirstNames := []string{}
+const concertName = "2023 EOY Party"
+const totalTickets = 40
+const ticketCost float32 = 99.99
 
-	for _, value := range customers {
-		firstname := strings.Fields(value)[0]
-		present := slices.Contains(customersFirstNames, firstname)
+var customers = make([]Customer, 0)
+var availableTickets uint8 = 40
 
-		if !present {
-			customersFirstNames = append(customersFirstNames, firstname)
-		}
-	}
-
-	filteredFirstNames := len(customersFirstNames)
-	if filteredFirstNames >= 1 {
-		namesOfCustomers += customersFirstNames[0]
-
-		for i := 1; i < filteredFirstNames; i++ {
-			if i == filteredFirstNames-1 {
-				namesOfCustomers += " & "
-			} else {
-				namesOfCustomers += ", "
-			}
-			namesOfCustomers += customersFirstNames[i]
-		}
-	} else {
-		return "No customers yet"
-	}
-
-	statement := "We had a total of " + strconv.Itoa(filteredFirstNames) + " customer(s) with the following names: " + namesOfCustomers
-	return statement
+type Customer struct {
+	firstName    string
+	lastName     string
+	email        string
+	numOfTickets uint8
 }
 
 func main() {
-	const bookingName = "2023 EOY Party"
-	const totalTickets = 40
-	const ticketCost float32 = 99.99
-	var remainingTickets uint8 = 40
-	customers := []string{}
+	welcomeMessage()
 
-	fmt.Println("#############################################")
-	fmt.Printf("Welcome to the %v booking page.\n", bookingName)
-	fmt.Printf("We have total of %v up for grabs and %v remaining tickets\n", totalTickets, remainingTickets)
-	fmt.Println("#############################################")
+	for availableTickets > 0 {
+		customer := getUserDetails()
+		isValidName, isValidEmail, isValidQty := validateUserDetails(customer)
 
-	fmt.Println("Proceed to buy ticket")
+		if isValidName && isValidEmail && isValidQty {
+			if customer.numOfTickets > availableTickets {
+				fmt.Printf("Sorry we have only %v tickets left", availableTickets)
+				continue
+			} else if customer.numOfTickets == availableTickets {
+				fmt.Println("LUCKY YOU :) - You're getting our last set of tickets")
+			}
+			confirmPurchase(customer)
+			go sendTicketInvoice(customer)
 
-	for remainingTickets > 0 {
-		var firstName string
-		var lastName string
-		var email string
-		var qtyPurchase uint8
-		var confirm string
-
-		fmt.Print("\nEnter your first name: ")
-		fmt.Scan(&firstName)
-		fmt.Print("Enter your last name: ")
-		fmt.Scan(&lastName)
-		fmt.Print("Enter email address: ")
-		fmt.Scan(&email)
-		fmt.Print("How many tickets do you need: ")
-		fmt.Scan(&qtyPurchase)
-
-		if qtyPurchase > remainingTickets {
-			fmt.Printf("Sorry we have only %v tickets left", remainingTickets)
-			continue
-		} else if qtyPurchase == remainingTickets {
-			fmt.Println("LUCKY YOU :) - You're getting our last set of tickets")
-		}
-		qtyPurchaseCost := ticketCost * float32(qtyPurchase)
-
-		fmt.Printf("Hey %v %v the cost for %v ticket is $%v\n", firstName, lastName, qtyPurchase, qtyPurchaseCost)
-		fmt.Println("Proceed to make payment...")
-		fmt.Println("Press yes/y to confirm and no/n to cancel")
-		fmt.Scan(&confirm)
-
-		confirm = strings.ToLower(confirm)
-		if confirm == "y" || confirm == "yes" {
-			fmt.Printf("Thanks for your purchase %v. Sent invoice to %v\n", firstName, email)
-			remainingTickets -= qtyPurchase
-			customers = append(customers, firstName+" "+lastName)
 		} else {
-			fmt.Println("Operation terminated!")
+			if !isValidName {
+				fmt.Println("First name and last name must be at least 2 characters long")
+			}
+			if !isValidEmail {
+				fmt.Println("Email is invalid")
+			}
+			if !isValidQty {
+				fmt.Println("You must purchase at least 1 ticket")
+			}
 		}
 
-		fmt.Printf("%v tickets already sold and we have %v tickets left. \n", (totalTickets - remainingTickets), remainingTickets)
+		fmt.Printf("%v tickets already sold and we have %v tickets left. \n", (totalTickets - availableTickets), availableTickets)
 	}
-	fmt.Println("###########")
-	fmt.Println("SOLD OUT :)")
-	fmt.Println("###########")
-	fmt.Println(stats(customers))
 
+	stats(customers)
 }
